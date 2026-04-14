@@ -1,0 +1,40 @@
+{
+  "name": "humancanhelp",
+  "version": "1.0.0",
+  "description": "Generate a shareable URL to let a human see and interact with your screen via VNC",
+  "bin": {
+    "hcl": "./dist/index.js",
+    "humancanhelp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "localtunnel": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "files": [
+    "dist",
+    "SKILL.md"
+  ],
+  "keywords": [
+    "captcha",
+    "vnc",
+    "human-help",
+    "ai",
+    "claude-code",
+    "skill"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
