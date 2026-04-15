@@ -1,7 +1,15 @@
 {
   "name": "humancanhelp",
   "version": "1.0.0",
-  "description": "Generate a shareable URL to let a human see and interact with your screen via VNC",
+  "description": "Local human-in-the-loop handoff for blocked AI workflows via CDP browser tabs or VNC desktops",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metalony/humancanhelp.git"
+  },
+  "homepage": "https://github.com/metalony/humancanhelp#readme",
+  "bugs": {
+    "url": "https://github.com/metalony/humancanhelp/issues"
+  },
   "bin": {
     "hcl": "./dist/index.js",
     "humancanhelp": "./dist/index.js"
@@ -9,11 +17,11 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
+    "start": "node dist/index.js start",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "ws": "^8.18.0",
-    "localtunnel": "^2.0.2"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/ws": "^8.18.0",
@@ -23,13 +31,19 @@
   },
   "files": [
     "dist",
-    "SKILL.md"
+    "SKILL.md",
+    "src/humancanhelp.png"
   ],
   "keywords": [
     "captcha",
+    "human-in-the-loop",
+    "browser-automation",
+    "cdp",
     "vnc",
     "human-help",
     "ai",
+    "playwright",
+    "puppeteer",
     "claude-code",
     "skill"
   ],

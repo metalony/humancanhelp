@@ -45,15 +45,15 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 function printUsage() {
-  console.log(`HumanCanHelp (hcl) - Generate a shareable URL for human screen interaction
+  console.log(`HumanCanHelp (hcl) - Start a short-lived human help session for blocked AI workflows
 
 Usage:
-  hcl start [--port 6080] [--cdp localhost:9222] [--vnc localhost:5900] [--timeout 120] [--public]
+  hcl start [--port 6080] [--cdp localhost:9222] [--vnc localhost:5900] [--timeout 600] [--public] [--password secret]
   hcl stop
   hcl status
 
 Commands:
-  start    Start the help server, print shareable URL(s)
+  start    Start the help server and print helper URL(s)
   stop     Stop the running help server
   status   Check if a help server is running
 
@@ -104,7 +104,7 @@ async function createPublicTunnel(port: number): Promise<string> {
     const tunnel = await localtunnel.default({ port });
     return tunnel.url;
   } catch {
-    console.error("  Failed to create public tunnel. Install localtunnel: npm install localtunnel");
+    console.error("  Failed to create public tunnel. Install the optional dependency first: npm install localtunnel");
     return "";
   }
 }
