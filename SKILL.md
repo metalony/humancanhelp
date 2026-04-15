@@ -1,6 +1,6 @@
 ---
 name: humancanhelp
-description: Use when encountering captchas, human verification, or any visual task requiring human interaction that AI cannot solve autonomously
+description: Use when AI is blocked by captchas, visual verification, or any short interactive task that needs a real human handoff
 version: 1.0.0
 metadata:
   openclaw:
@@ -12,30 +12,37 @@ metadata:
 
 # HumanCanHelp (HCL)
 
-Generate a shareable URL to let a human see and interact with your screen. Supports both browser tab sharing (CDP) and full desktop sharing (VNC).
+HumanCanHelp is a local human-in-the-loop handoff tool for moments when AI needs a person to briefly see a live screen, click, type, drag, or complete a blocked step. It supports both browser tab sharing (CDP) and full desktop sharing (VNC).
 
 ## When to Use
 
-- Captcha challenges (text, slider, click, complex)
-- Visual verification requiring human eyes
-- Any interactive task AI cannot complete alone
+- Captcha challenges and human verification flows
+- Visual checks that need a real person to look at the screen
+- Short blocked browser or desktop steps during an automated workflow
+- Any interactive handoff where AI cannot safely complete the step alone
 
 ## How to Use
 
-This skill metadata is prepared for a future ClawHub/OpenClaw release, but the project is not published yet. Use a local checkout for now:
+Use a local checkout as the primary flow right now. If you publish the package into your own environment later, the CLI behavior stays the same: start HCL, send the printed URL to a helper, and wait for the CLI to exit.
 
 ```bash
 npm install
 npm run build
-node dist/index.js start
+npm start
 ```
 
-Once the package is published, `npx humancanhelp start` can become the short install path. Until then, run the built local entrypoint via Bash. It prints a URL. Give that URL to the user. Wait for the CLI to exit.
+Optional published-package flow, only after you have actually published or installed it:
+
+```bash
+npx humancanhelp start
+```
+
+If you installed it globally yourself, `hcl start` is equivalent.
 
 ### Step 1: Start the help server
 
 ```bash
-node dist/index.js start
+hcl start
 ```
 
 HCL auto-detects the best mode:
@@ -45,17 +52,17 @@ HCL auto-detects the best mode:
 For explicit mode selection:
 ```bash
 # CDP mode (browser tab only)
-node dist/index.js start --cdp localhost:9222
+hcl start --cdp localhost:9222
 
 # VNC mode (full desktop)
-node dist/index.js start --vnc localhost:5900
+hcl start --vnc localhost:5900
 ```
 
 CDP mode output:
 ```
   HumanCanHelp started
 
-  Local:   http://192.168.1.100:6080
+  Local:   http://<your-local-ip>:6080
   Mode:    CDP (Chrome DevTools Protocol)
   Target:  ws://localhost:9222/devtools/page/XXXX
   Timeout: 600s
@@ -65,7 +72,7 @@ VNC mode output:
 ```
   HumanCanHelp started
 
-  Local:   http://192.168.1.100:6080
+  Local:   http://<your-local-ip>:6080
   Mode:    VNC
   VNC:     localhost:5900
   Timeout: 600s
@@ -74,23 +81,30 @@ VNC mode output:
 ### For remote helpers (public URL)
 
 ```bash
-node dist/index.js start --public
+hcl start --public --password mysecret
+```
+
+If you want `--public`, install the optional tunnel dependency first from your local checkout:
+
+```bash
+npm install localtunnel
 ```
 
 This creates both a local and a public tunnel URL:
 ```
-  Local:   http://192.168.1.100:6080
+  Local:   http://<your-local-ip>:6080
   Public:  https://abc123.lhr.life
   Mode:    CDP (Chrome DevTools Protocol)
   Timeout: 600s
+  Password: yes
 ```
 
-Send the public URL to anyone on the internet. Use `--password` to protect it.
+If you expose a public URL, use `--password` so the helper must authenticate before they can access the session.
 
 ### Step 2: Tell the user to open the URL
 
 Say something like:
-"Please open this URL on your phone or another browser to help me solve the captcha: http://192.168.1.100:6080"
+"Please open this URL to help me finish the blocked step: http://<your-local-ip>:6080"
 
 ### Step 3: Wait
 
@@ -106,7 +120,7 @@ After the CLI exits with code 0, the human has finished interacting with the scr
 ## CLI Reference
 
 ```
-node dist/index.js start [options]
+hcl start [options]
 
 Options:
   --cdp <host:port>    Use CDP mode (Chrome DevTools Protocol), e.g. --cdp localhost:9222
@@ -121,7 +135,7 @@ Options:
 ## Modes
 
 ### CDP Mode (recommended)
-Shares only the browser tab via Chrome DevTools Protocol. Supports mouse clicks, typing, and slider drag interactions. Best for Playwright/Puppeteer workflows.
+Shares only the browser tab via Chrome DevTools Protocol. Supports mouse clicks, typing, and slider drag interactions. Best for Playwright, Puppeteer, and browser-based recovery workflows.
 
 Requires Chrome launched with `--remote-debugging-port=9222`.
 
@@ -137,4 +151,4 @@ The help page automatically expires when:
 
 ## Privacy
 
-Password protection is available now. The `--mask` flag exists in the CLI surface, but masking is not enforced yet in the current MVP, so do not rely on it as a privacy control.
+Password protection is available now. For password-protected sessions, remote helpers must authenticate before HCL exposes live session metadata or event updates. The `--mask` flag exists in the CLI surface, but masking is not enforced yet in the current MVP, so do not rely on it as a privacy control.
