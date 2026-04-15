@@ -31,6 +31,7 @@ const HELP_HTML = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HumanCanHelp</title>
+<link rel="icon" href="data:,">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;height:100vh}
@@ -61,12 +62,12 @@ body{background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,san
 <body>
 
 <div id="pw" class="overlay">
-  <div class="pw-box">
+  <form class="pw-box" onsubmit="checkPw(event)">
     <h2>Password Required</h2>
-    <p>This session is password protected</p>
+    <p id="pw-msg">This session is password protected</p>
     <input type="password" id="pwi" placeholder="Enter password" autofocus>
-    <button onclick="checkPw()">Access</button>
-  </div>
+    <button type="submit">Access</button>
+  </form>
 </div>
 
 <div id="done" class="overlay">
@@ -129,6 +130,15 @@ function drawDisconnected() {
   ctx.fillText('Disconnected', cv.width / 2, cv.height / 2);
 }
 
+function showConnectionProblem(message) {
+  closeSessionTransport();
+  const el = document.getElementById('conn');
+  el.style.display = 'block';
+  el.className = 'expired-msg';
+  el.textContent = message;
+  cv.style.display = 'none';
+}
+
 function connectVNC() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(proto + '//' + location.host + '/vnc');
@@ -154,6 +164,10 @@ function connectVNC() {
   };
 
   ws.onclose = () => {
+    if (!connected) {
+      showConnectionProblem('Unable to connect to the VNC backend for this session.');
+      return;
+    }
     drawDisconnected();
   };
 
@@ -217,6 +231,10 @@ function connectCDP() {
   };
 
   ws.onclose = () => {
+    if (!connected) {
+      showConnectionProblem('Unable to connect to the browser tab for this session.');
+      return;
+    }
     drawDisconnected();
   };
 
@@ -306,8 +324,64 @@ document.addEventListener('keyup', (event) => {
   ws.send(buf);
 });
 
-async function checkPw() {
+let es = null;
+
+function closeEventStream() {
+  if (es) {
+    es.close();
+    es = null;
+  }
+}
+
+function closeSessionTransport() {
+  closeEventStream();
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+}
+
+function connectEvents() {
+  closeEventStream();
+  es = new EventSource('/api/events');
+  es.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.event === 'expired') {
+      showExpired();
+    }
+    if (data.event === 'done') {
+      showDoneState('Session Complete');
+    }
+    if (data.event === 'fail') {
+      showDoneState('Session Failed');
+    }
+  };
+}
+
+function applyStatus(data) {
+  mode = data.mode || 'vnc';
+  document.getElementById('mode-label').textContent = mode === 'cdp' ? 'CDP mode' : 'VNC mode';
+  if (data.instruction) document.getElementById('inst').textContent = data.instruction;
+  if (data.timeout) startTimer(data.timeout);
+}
+
+async function loadStatusAndConnect() {
+  const response = await fetch('/api/status');
+  if (!response.ok) {
+    throw new Error('Failed to load session status');
+  }
+  const data = await response.json();
+  applyStatus(data);
+  connectEvents();
+  connectScreen();
+}
+
+async function checkPw(event) {
+  if (event) {
+    event.preventDefault();
+  }
   const pw = document.getElementById('pwi').value;
+  const msg = document.getElementById('pw-msg');
   const response = await fetch('/api/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -315,55 +389,60 @@ async function checkPw() {
   });
   const data = await response.json();
   if (data.ok) {
-    document.getElementById('pw').classList.remove('show');
-    connectScreen();
+    msg.textContent = 'Checking session...';
+    try {
+      await loadStatusAndConnect();
+      document.getElementById('pw').classList.remove('show');
+      msg.textContent = 'This session is password protected';
+    } catch {
+      msg.textContent = 'Authenticated, but failed to load the session. Please try again.';
+    }
   } else {
-    alert('Wrong password');
+    msg.textContent = 'Wrong password. Please try again.';
   }
 }
 
 async function markDone() {
   await fetch('/api/done', { method: 'POST' });
-  document.getElementById('done-title').textContent = 'Session Complete';
-  document.getElementById('done').classList.add('show');
+  showDoneState('Session Complete');
 }
 
 async function markFail() {
   await fetch('/api/fail', { method: 'POST' });
-  document.getElementById('done-title').textContent = 'Session Failed';
+  showDoneState('Session Failed');
+}
+
+async function bootstrap() {
+  try {
+    const response = await fetch('/api/status');
+    if (!response.ok) {
+      throw new Error('Failed to load session status');
+    }
+    const data = await response.json();
+    if (data.password) {
+      document.getElementById('pw').classList.add('show');
+      document.getElementById('pwi').focus();
+    } else {
+      applyStatus(data);
+      connectEvents();
+      connectScreen();
+    }
+  } catch {
+    const el = document.getElementById('conn');
+    el.style.display = 'block';
+    el.className = 'expired-msg';
+    el.textContent = 'Failed to load the session. Refresh to try again.';
+  }
+}
+
+function showDoneState(title) {
+  closeSessionTransport();
+  document.getElementById('done-title').textContent = title;
   document.getElementById('done').classList.add('show');
 }
 
-fetch('/api/status').then((response) => response.json()).then((data) => {
-  mode = data.mode || 'vnc';
-  document.getElementById('mode-label').textContent = mode === 'cdp' ? 'CDP mode' : 'VNC mode';
-  if (data.password) {
-    document.getElementById('pw').classList.add('show');
-  } else {
-    connectScreen();
-  }
-  if (data.instruction) document.getElementById('inst').textContent = data.instruction;
-  if (data.timeout) startTimer(data.timeout);
-});
-
-const es = new EventSource('/api/events');
-es.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.event === 'expired') {
-    showExpired();
-  }
-  if (data.event === 'done') {
-    document.getElementById('done-title').textContent = 'Session Complete';
-    document.getElementById('done').classList.add('show');
-  }
-  if (data.event === 'fail') {
-    document.getElementById('done-title').textContent = 'Session Failed';
-    document.getElementById('done').classList.add('show');
-  }
-};
-
 function showExpired() {
-  if (ws) ws.close();
+  closeSessionTransport();
   const el = document.getElementById('conn');
   el.style.display = 'block';
   el.className = 'expired-msg';
@@ -372,6 +451,8 @@ function showExpired() {
   const acts = document.querySelector('.acts');
   if (acts) acts.remove();
 }
+
+bootstrap();
 
 function startTimer(seconds) {
   let rem = seconds;
@@ -387,11 +468,17 @@ function startTimer(seconds) {
 }
 
 setInterval(async () => {
-  const response = await fetch('/api/status');
-  const data = await response.json();
-  if (data.status === 'done' || data.status === 'fail' || data.status === 'timeout') {
-    document.getElementById('done-title').textContent = data.status === 'done' ? 'Session Complete' : 'Session Ended';
-    document.getElementById('done').classList.add('show');
+  try {
+    const response = await fetch('/api/status');
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    if (data.status === 'done' || data.status === 'fail' || data.status === 'timeout') {
+      showDoneState(data.status === 'done' ? 'Session Complete' : 'Session Ended');
+    }
+  } catch {
+    // Ignore transient polling failures and wait for the next interval.
   }
 }, 3000);
 </script>
@@ -530,7 +617,6 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
   const httpServer = createHttpServer((req: IncomingMessage, res: ServerResponse) => {
     if (req.method === "OPTIONS") {
       res.writeHead(200, {
-        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST",
         "Access-Control-Allow-Headers": "Content-Type",
       });
@@ -547,7 +633,14 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
     }
 
     if (url.pathname === "/api/status") {
+      const canViewFullStatus = !config.password || isAuthorized(req) || isLocalRequest(req);
       res.writeHead(200, { "Content-Type": "application/json" });
+      if (!canViewFullStatus) {
+        res.end(JSON.stringify({
+          password: true,
+        }));
+        return;
+      }
       res.end(JSON.stringify({
         status,
         mode: config.mode,
@@ -560,11 +653,15 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
     }
 
     if (url.pathname === "/api/events") {
+      if (config.password && !isAuthorized(req)) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false }));
+        return;
+      }
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
       });
       res.write(`data: ${JSON.stringify({ event: "connected" })}\n\n`);
       sseClients.push(res);
@@ -651,9 +748,7 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
       res.once("finish", () => {
-        void cleanup().finally(() => {
-          setTimeout(() => process.exit(0), 100);
-        });
+        void cleanup();
       });
       return;
     }
