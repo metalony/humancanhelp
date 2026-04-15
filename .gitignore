@@ -8,3 +8,4 @@ __pycache__/
 *.log
 .sisyphus/
 *.tgz
+.playwright-mcp/
