@@ -1,7 +1,7 @@
 {
   "name": "humancanhelp",
   "version": "1.0.0",
-  "description": "Local human-in-the-loop handoff for blocked AI workflows via CDP browser tabs or VNC desktops",
+  "description": "Local human-in-the-loop handoff for blocked visual or interactive AI workflow steps via CDP tabs or VNC desktops",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/metalony/humancanhelp.git"
@@ -35,7 +35,6 @@
     "src/humancanhelp.png"
   ],
   "keywords": [
-    "captcha",
     "human-in-the-loop",
     "browser-automation",
     "cdp",
