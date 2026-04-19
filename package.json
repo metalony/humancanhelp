@@ -1,6 +1,6 @@
 {
   "name": "humancanhelp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local human-in-the-loop handoff for blocked visual or interactive AI workflow steps via CDP tabs or VNC desktops",
   "repository": {
     "type": "git",
