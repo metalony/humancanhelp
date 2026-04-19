@@ -298,12 +298,14 @@ The helper can:
 
 - interact with the shared screen or tab
 - click **Done** when the task is complete
-- click **Login required** when the next step needs account credentials, MFA, SSO approval, or another owner-only sign-in step
+- continue helping through ordinary login screens or sign-in steps when a remote helper can legitimately complete them through CDP/VNC
+- click **Login required** only when the real account owner must continue personally, such as owner-bound MFA, SSO approval, or another owner-only sign-in step
 - click **Cannot solve** if they cannot finish it
 
 - 与共享的屏幕或标签页交互
 - 在任务完成后点击 **Done**
-- 当下一步需要账号密码、MFA、SSO 批准或其他仅限账号持有者完成的登录动作时，点击 **Login required**
+- 如果远程协助者可以通过 CDP/VNC 合理完成普通登录页面或登录步骤，就继续协助处理
+- 只有当必须由真实账号持有者本人继续时，例如 owner 绑定的 MFA、SSO 批准或其他仅限账号主人完成的登录动作，才点击 **Login required**
 - 如果无法完成则点击 **Cannot solve**
 
 Session behavior:
@@ -311,12 +313,12 @@ Session behavior:
 会话行为如下：
 
 - **Done** → CLI exits with success
-- **Login required** → CLI exits with a dedicated login-required failure so the calling workflow can escalate to the account owner
+- **Login required** → CLI exits with a dedicated login-required failure so the calling workflow can escalate the session to the actual account owner
 - **Cannot solve** → CLI exits with failure
 - **Timeout** → session expires, the page shows an expired state, and HCL starts a fresh session with the same config
 
 - **Done** → CLI 成功退出
-- **Login required** → CLI 以专门的 login-required 失败状态退出，方便调用方把流程升级给账号持有者处理
+- **Login required** → CLI 以专门的 login-required 失败状态退出，方便调用方把当前会话升级给真正的账号持有者处理
 - **Cannot solve** → CLI 失败退出
 - **Timeout** → 会话过期，页面显示过期状态，HCL 使用相同配置重新开启一个新会话
 
