@@ -711,7 +711,7 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
         status,
         mode: config.mode,
         password: !!config.password,
-        instruction: "Use Login Required when the step needs account credentials, MFA, or owner approval.",
+        instruction: "Use Login Required only when the real account owner must continue personally; ordinary login steps can still be completed through remote help.",
         timeout: config.timeout,
         publicUrl,
         maskRegions: config.maskRegions ?? [],
