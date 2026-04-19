@@ -385,7 +385,7 @@ async function main() {
 
       server.onLoginRequired((reason) => {
         currentServer = null;
-        console.log(`\n  Helper marked as LOGIN REQUIRED: ${reason}`);
+        console.log(`\n  Helper marked as OWNER ACTION REQUIRED: ${reason}`);
         process.exit(2);
       });
 

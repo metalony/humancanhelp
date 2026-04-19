@@ -100,7 +100,7 @@ body{background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,san
 
 <div class="acts">
   <button class="bd" onclick="markDone()">Done - I solved it</button>
-  <button class="bl" onclick="markLoginRequired()">Login required</button>
+  <button class="bl" onclick="markLoginRequired()">Owner action required</button>
   <button class="bf" onclick="markFail()">Cannot solve</button>
 </div>
 
@@ -406,7 +406,7 @@ function connectEvents() {
       showDoneState('Session Failed');
     }
     if (data.event === 'login-required') {
-      showDoneState('Login Required');
+      showDoneState('Owner Action Required');
     }
   };
 }
@@ -468,7 +468,7 @@ async function markFail() {
 
 async function markLoginRequired() {
   await fetch('/api/login-required', { method: 'POST' });
-  showDoneState('Login Required');
+  showDoneState('Owner Action Required');
 }
 
 async function bootstrap() {
@@ -537,7 +537,7 @@ setInterval(async () => {
       if (data.status === 'done') {
         showDoneState('Session Complete');
       } else if (data.status === 'login-required') {
-        showDoneState('Login Required');
+        showDoneState('Owner Action Required');
       } else {
         showDoneState('Session Ended');
       }
