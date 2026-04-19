@@ -4,6 +4,7 @@ import { createServer, HclServer } from "./server.js";
 import { networkInterfaces } from "node:os";
 import { discoverCdpTarget } from "./cdp.js";
 import { Socket } from "node:net";
+import { parseMaskRegions } from "./mask.js";
 
 type ParsedArgs = Record<string, string | number | boolean>;
 
@@ -81,7 +82,7 @@ Options:
   --timeout <seconds>  Auto-stop after this many seconds (default: 600)
   --public             Create a public tunnel URL (for remote helpers)
   --password <string>  Optional password to protect the help URL
-  --mask <regions>     Optional: "x,y,w,h;x,y,w,h" regions to mask (black)
+  --mask <regions>     Optional helper-side black mask regions that also block pointer input: "x,y,w,h;x,y,w,h"
 
 参数:
   --port <number>      帮助页 HTTP 端口（默认：6080）
@@ -90,7 +91,7 @@ Options:
   --timeout <seconds>  自动停止时间，单位秒（默认：600）
   --public             为远程协助者创建公共访问地址
   --password <string>  为帮助地址添加访问密码
-  --mask <regions>     可选遮罩区域："x,y,w,h;x,y,w,h"
+  --mask <regions>     可选协助者侧黑色遮罩，并阻止指针输入："x,y,w,h;x,y,w,h"
 `);
 }
 
@@ -270,13 +271,7 @@ async function main() {
     const mask = parsed.mask ? String(parsed.mask) : undefined;
     const detectResult = await chooseMode(parsed);
     const modeSelection = detectResult.selection;
-    let maskRegions: Array<{ x: number; y: number; w: number; h: number }> | undefined;
-    if (mask) {
-      maskRegions = mask.split(";").map((r) => {
-        const [x, y, w, h] = r.split(",").map(Number);
-        return { x, y, w, h };
-      });
-    }
+      const maskRegions = mask ? parseMaskRegions(mask) : undefined;
 
     const localIP = getLocalIP();
     const localUrl = `http://${localIP}:${port}`;
@@ -386,6 +381,12 @@ async function main() {
         currentServer = null;
         console.log(`\n  Helper marked as FAILED: ${reason}`);
         process.exit(1);
+      });
+
+      server.onLoginRequired((reason) => {
+        currentServer = null;
+        console.log(`\n  Helper marked as LOGIN REQUIRED: ${reason}`);
+        process.exit(2);
       });
 
       server.onTimeout((closed) => {

@@ -3,6 +3,7 @@ import { Socket } from "node:net";
 import { randomUUID } from "node:crypto";
 import { RawData, WebSocketServer, WebSocket } from "ws";
 import { CdpClient } from "./cdp.js";
+import { MaskRegion } from "./mask.js";
 
 export type HclConfig = {
   mode: "vnc" | "cdp";
@@ -13,12 +14,13 @@ export type HclConfig = {
   cdpPort?: number;
   timeout: number;
   password?: string;
-  maskRegions?: Array<{ x: number; y: number; w: number; h: number }>;
+  maskRegions?: MaskRegion[];
 };
 
 export type HclServer = {
   onDone: (cb: () => void) => void;
   onFail: (cb: (reason: string) => void) => void;
+  onLoginRequired: (cb: (reason: string) => void) => void;
   onTimeout: (cb: (closed: Promise<void>) => void) => void;
   stop: () => Promise<void>;
   setPublicUrl: (url: string) => void;
@@ -39,10 +41,14 @@ body{background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,san
 .hdr .logo{font-weight:700;font-size:16px}
 .hdr .timer{background:#444;padding:4px 10px;border-radius:4px;font-family:monospace;font-size:13px}
 .main{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}
+.canvas-wrap{position:relative;display:inline-block;max-width:100%;max-height:100%}
 .main canvas{border-radius:8px;background:#000;max-width:100%;max-height:100%;display:none}
+.mask-layer{position:absolute;inset:0;display:none;pointer-events:none}
+.mask-box{position:absolute;background:#000;border:1px solid rgba(255,255,255,0.18)}
 .acts{background:#1a1a1a;padding:12px 20px;display:flex;gap:12px;border-top:1px solid #333}
 .acts button{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
 .bd{background:#16a34a;color:#fff}.bd:hover{background:#15803d}
+.bl{background:#2563eb;color:#fff}.bl:hover{background:#1d4ed8}
 .bf{background:#dc2626;color:#fff}.bf:hover{background:#b91c1c}
 .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100}
 .overlay.show{display:flex}
@@ -86,23 +92,61 @@ body{background:#111;color:#eee;font-family:-apple-system,BlinkMacSystemFont,san
 
 <div class="main">
   <div class="connecting" id="conn">Connecting to screen...</div>
-  <canvas id="cv" tabindex="0"></canvas>
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="cv" tabindex="0"></canvas>
+    <div class="mask-layer" id="mask-layer"></div>
+  </div>
 </div>
 
 <div class="acts">
   <button class="bd" onclick="markDone()">Done - I solved it</button>
+  <button class="bl" onclick="markLoginRequired()">Login required</button>
   <button class="bf" onclick="markFail()">Cannot solve</button>
 </div>
 
 <script>
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
+const maskLayer = document.getElementById('mask-layer');
 let ws = null;
 let fbW = 0;
 let fbH = 0;
 let connected = false;
 let mode = 'vnc';
 let mouseDown = false;
+let maskRegions = [];
+
+function setMaskRegions(regions) {
+  maskRegions = Array.isArray(regions) ? regions : [];
+  renderMaskRegions();
+}
+
+function isMaskedPoint(x, y) {
+  return maskRegions.some((region) => x >= region.x && x < region.x + region.w && y >= region.y && y < region.y + region.h);
+}
+
+function renderMaskRegions() {
+  if (!maskLayer) {
+    return;
+  }
+
+  maskLayer.innerHTML = '';
+  if (!maskRegions.length || !fbW || !fbH) {
+    maskLayer.style.display = 'none';
+    return;
+  }
+
+  maskLayer.style.display = 'block';
+  for (const region of maskRegions) {
+    const node = document.createElement('div');
+    node.className = 'mask-box';
+    node.style.left = ((region.x / fbW) * 100) + '%';
+    node.style.top = ((region.y / fbH) * 100) + '%';
+    node.style.width = ((region.w / fbW) * 100) + '%';
+    node.style.height = ((region.h / fbH) * 100) + '%';
+    maskLayer.appendChild(node);
+  }
+}
 
 function getScreenPoint(event) {
   const rect = cv.getBoundingClientRect();
@@ -118,6 +162,7 @@ function showConnected() {
   document.getElementById('conn').style.display = 'none';
   cv.style.display = 'block';
   connected = true;
+  renderMaskRegions();
 }
 
 function drawDisconnected() {
@@ -157,6 +202,7 @@ function connectVNC() {
         fbH = msg.height;
         cv.width = fbW;
         cv.height = fbH;
+        renderMaskRegions();
       }
       return;
     }
@@ -215,6 +261,7 @@ function connectCDP() {
       fbH = msg.height;
       cv.width = fbW;
       cv.height = fbH;
+      renderMaskRegions();
       return;
     }
     if (msg.type === 'frame') {
@@ -252,6 +299,7 @@ function connectScreen() {
 cv.addEventListener('mousedown', (event) => {
   if (!ws || ws.readyState !== 1) return;
   const point = getScreenPoint(event);
+  if (isMaskedPoint(point.x, point.y)) return;
   if (mode === 'cdp') {
     mouseDown = true;
     ws.send(JSON.stringify({ type: 'mouseDown', x: point.x, y: point.y }));
@@ -270,6 +318,7 @@ cv.addEventListener('mousedown', (event) => {
 cv.addEventListener('mouseup', (event) => {
   if (!ws || ws.readyState !== 1) return;
   const point = getScreenPoint(event);
+  if (isMaskedPoint(point.x, point.y)) return;
   if (mode === 'cdp') {
     mouseDown = false;
     ws.send(JSON.stringify({ type: 'mouseUp', x: point.x, y: point.y }));
@@ -287,6 +336,7 @@ cv.addEventListener('mouseup', (event) => {
 cv.addEventListener('mousemove', (event) => {
   if (!ws || ws.readyState !== 1 || mode !== 'cdp') return;
   const point = getScreenPoint(event);
+  if (isMaskedPoint(point.x, point.y)) return;
   ws.send(JSON.stringify({ type: 'mouseMove', x: point.x, y: point.y, dragging: mouseDown }));
 });
 
@@ -355,6 +405,9 @@ function connectEvents() {
     if (data.event === 'fail') {
       showDoneState('Session Failed');
     }
+    if (data.event === 'login-required') {
+      showDoneState('Login Required');
+    }
   };
 }
 
@@ -362,6 +415,7 @@ function applyStatus(data) {
   mode = data.mode || 'vnc';
   document.getElementById('mode-label').textContent = mode === 'cdp' ? 'CDP mode' : 'VNC mode';
   if (data.instruction) document.getElementById('inst').textContent = data.instruction;
+  setMaskRegions(data.maskRegions || []);
   if (data.timeout) startTimer(data.timeout);
 }
 
@@ -410,6 +464,11 @@ async function markDone() {
 async function markFail() {
   await fetch('/api/fail', { method: 'POST' });
   showDoneState('Session Failed');
+}
+
+async function markLoginRequired() {
+  await fetch('/api/login-required', { method: 'POST' });
+  showDoneState('Login Required');
 }
 
 async function bootstrap() {
@@ -474,8 +533,14 @@ setInterval(async () => {
       return;
     }
     const data = await response.json();
-    if (data.status === 'done' || data.status === 'fail' || data.status === 'timeout') {
-      showDoneState(data.status === 'done' ? 'Session Complete' : 'Session Ended');
+    if (data.status === 'done' || data.status === 'fail' || data.status === 'timeout' || data.status === 'login-required') {
+      if (data.status === 'done') {
+        showDoneState('Session Complete');
+      } else if (data.status === 'login-required') {
+        showDoneState('Login Required');
+      } else {
+        showDoneState('Session Ended');
+      }
     }
   } catch {
     // Ignore transient polling failures and wait for the next interval.
@@ -485,7 +550,7 @@ setInterval(async () => {
 </body>
 </html>`;
 
-type HclStatus = "waiting" | "active" | "done" | "fail" | "timeout";
+type HclStatus = "waiting" | "active" | "done" | "fail" | "timeout" | "login-required";
 
 type CdpWsMessage =
   | { type: "mouseDown"; x: number; y: number }
@@ -542,6 +607,7 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
   let status: HclStatus = "waiting";
   let doneCallback: (() => void) | null = null;
   let failCallback: ((reason: string) => void) | null = null;
+  let loginRequiredCallback: ((reason: string) => void) | null = null;
   let timeoutCallback: ((closed: Promise<void>) => void) | null = null;
   let vncSocket: Socket | null = null;
   let publicUrl: string | null = null;
@@ -645,9 +711,10 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
         status,
         mode: config.mode,
         password: !!config.password,
-        instruction: "",
+        instruction: "Use Login Required when the step needs account credentials, MFA, or owner approval.",
         timeout: config.timeout,
         publicUrl,
+        maskRegions: config.maskRegions ?? [],
       }));
       return;
     }
@@ -734,6 +801,24 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
       res.end(JSON.stringify({ ok: true }));
       if (failCallback) {
         failCallback("Helper reported failure");
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/login-required" && req.method === "POST") {
+      if (!isAuthorized(req)) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false }));
+        return;
+      }
+      clearTimeout(timeoutTimer);
+      status = "login-required";
+      broadcastSSE("login-required", {});
+      void cleanup();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+      if (loginRequiredCallback) {
+        loginRequiredCallback("Helper requested account-owner login or approval");
       }
       return;
     }
@@ -926,6 +1011,9 @@ export async function createServer(config: HclConfig): Promise<HclServer> {
         },
         onFail: (cb) => {
           failCallback = cb;
+        },
+        onLoginRequired: (cb) => {
+          loginRequiredCallback = cb;
         },
         onTimeout: (cb) => {
           timeoutCallback = cb;
