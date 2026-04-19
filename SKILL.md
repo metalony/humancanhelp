@@ -166,13 +166,13 @@ Say something like:
 
 The CLI blocks until:
 - The user clicks "Done" on the page → exits with code 0
-- The user clicks "Login required" only when the real account owner must continue personally → exits with a dedicated login-required failure outcome so the workflow can escalate to the account owner
+- The user clicks "Owner action required" only when the real account owner must continue personally → exits with a dedicated login-required failure outcome so the workflow can escalate to the account owner
 - The user clicks "Cannot solve" → exits with code 1
 - Timeout expires → HCL immediately starts a fresh session with the same config
 
 CLI 会一直阻塞，直到：
 - 用户在页面上点击 “Done” → 以退出码 0 结束
-- 用户只有在必须由真实账号持有者本人继续时才点击 “Login required” → 以专门的 login-required 失败结果结束，方便把流程升级给账号持有者
+- 用户只有在必须由真实账号持有者本人继续时才点击 “Owner action required” → 以专门的 login-required 失败结果结束，方便把流程升级给账号持有者
 - 用户点击 “Cannot solve” → 以退出码 1 结束
 - 超时 → HCL 用相同配置立即启动一个新的会话
 
@@ -182,9 +182,9 @@ After the CLI exits with code 0, the human has finished interacting with the scr
 
 当 CLI 以退出码 0 结束后，说明人工已经完成了屏幕交互；普通登录相关协助也仍然可以通过这种方式完成。你就可以继续原来的任务。
 
-Use the dedicated "Login required" outcome only for the narrower case where the real account owner must take over personally, such as owner-bound MFA, SSO approval, or another identity step the helper cannot legitimately complete.
+Use the dedicated "Owner action required" outcome only for the narrower case where the real account owner must take over personally, such as owner-bound MFA, SSO approval, or another identity step the helper cannot legitimately complete.
 
-只有在更窄的那类情况——必须由真实账号持有者本人接手，例如 owner 绑定的 MFA、SSO 批准，或其他协助者不能合理代办的身份确认步骤——才使用专门的 “Login required” 结果。
+只有在更窄的那类情况——必须由真实账号持有者本人接手，例如 owner 绑定的 MFA、SSO 批准，或其他协助者不能合理代办的身份确认步骤——才使用专门的 “Owner action required” 结果。
 
 ## CLI Reference / CLI 参考
 
