@@ -56,14 +56,14 @@ The core model is simple:
 2. HCL prints a local URL, and optionally a public URL.
 3. A human opens the page and sees the shared browser tab or desktop.
 4. The human interacts directly.
-5. The human clicks **Done** or **Cannot solve**.
+5. The human clicks **Done**, **Login required**, or **Cannot solve**.
 6. Your CLI exits with success or failure.
 
 1. 在本地启动 HCL。
 2. HCL 打印一个本地 URL，并且可选打印一个公共 URL。
 3. 真人打开页面后看到共享的浏览器标签页或桌面。
 4. 真人直接进行操作。
-5. 真人点击 **Done** 或 **Cannot solve**。
+5. 真人点击 **Done**、**Login required** 或 **Cannot solve**。
 6. CLI 以成功或失败状态退出。
 
 ## Current status
@@ -298,10 +298,12 @@ The helper can:
 
 - interact with the shared screen or tab
 - click **Done** when the task is complete
+- click **Login required** when the next step needs account credentials, MFA, SSO approval, or another owner-only sign-in step
 - click **Cannot solve** if they cannot finish it
 
 - 与共享的屏幕或标签页交互
 - 在任务完成后点击 **Done**
+- 当下一步需要账号密码、MFA、SSO 批准或其他仅限账号持有者完成的登录动作时，点击 **Login required**
 - 如果无法完成则点击 **Cannot solve**
 
 Session behavior:
@@ -309,10 +311,12 @@ Session behavior:
 会话行为如下：
 
 - **Done** → CLI exits with success
+- **Login required** → CLI exits with a dedicated login-required failure so the calling workflow can escalate to the account owner
 - **Cannot solve** → CLI exits with failure
 - **Timeout** → session expires, the page shows an expired state, and HCL starts a fresh session with the same config
 
 - **Done** → CLI 成功退出
+- **Login required** → CLI 以专门的 login-required 失败状态退出，方便调用方把流程升级给账号持有者处理
 - **Cannot solve** → CLI 失败退出
 - **Timeout** → 会话过期，页面显示过期状态，HCL 使用相同配置重新开启一个新会话
 
@@ -338,7 +342,7 @@ node dist/index.js status
 | `--timeout` | `600` | Auto-stop / session-expiry time in seconds |
 | `--public` | off | Create a public tunnel URL for remote helpers |
 | `--password` | none | Require a password before the helper can access the session |
-| `--mask` | none | Accepts mask regions like `x,y,w,h;x,y,w,h` |
+| `--mask` | none | Apply helper-side black mask regions like `x,y,w,h;x,y,w,h` and block pointer input inside them |
 
 ### Status
 
@@ -376,9 +380,9 @@ Important limitation:
 
 重要限制：
 
-- `--mask` exists in the CLI surface, but masking is **not enforced yet** in the current MVP. Do not rely on it as a real privacy control.
+- `--mask` now renders black helper-side overlays and blocks helper pointer interactions inside those regions, but it does **not** rewrite or sanitize the underlying CDP/VNC transport stream itself.
 
-- CLI 里虽然有 `--mask` 参数，但当前 MVP **还没有真正强制执行遮罩**。不要把它当成可靠的隐私保护能力。
+- `--mask` 现在会在协助者界面中渲染黑色遮罩，并阻止协助者在这些区域内进行指针操作，但它**不会**改写或清洗底层 CDP/VNC 传输流本身。
 
 So the honest current privacy story is:
 
@@ -387,12 +391,12 @@ So the honest current privacy story is:
 - password protection works
 - sharing is opt-in
 - public tunnel support is optional and currently depends on a separately installed tunnel package
-- masking is not production-ready yet
+- helper-side masking is available for visual redaction and click blocking, but transport-level sanitization is still out of scope for the current architecture
 
 - 密码保护是有效的
 - 共享是显式选择开启的
 - 公共隧道支持是可选功能，并且依赖单独安装的隧道包
-- 遮罩功能还没有达到生产可用水平
+- 当前已提供协助者界面的可视遮罩与点击阻止能力，但底层传输级脱敏仍超出当前架构范围
 
 ## VNC setup
 
@@ -434,7 +438,7 @@ It does **not** currently claim to be:
 - a hosted service
 - a polished remote desktop platform
 - a full MCP runtime
-- a complete privacy-masking system
+- a complete transport-level privacy-masking system
 - a fully polished npm-published product you can install globally without caveats today
 
 - 一个托管式在线服务

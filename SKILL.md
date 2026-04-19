@@ -1,7 +1,7 @@
 ---
 name: humancanhelp
 description: Use for a short local human handoff when an AI workflow is blocked on a visual or interactive step / 当 AI 工作流在视觉或交互步骤中受阻时，使用本工具进行短时本地人工接手
-version: 1.0.0
+version: 1.1.0
 metadata:
   openclaw:
     requires:
@@ -166,11 +166,13 @@ Say something like:
 
 The CLI blocks until:
 - The user clicks "Done" on the page → exits with code 0
+- The user clicks "Login required" → exits with a dedicated login-required failure outcome so the workflow can escalate to the account owner
 - The user clicks "Cannot solve" → exits with code 1
 - Timeout expires → HCL immediately starts a fresh session with the same config
 
 CLI 会一直阻塞，直到：
 - 用户在页面上点击 “Done” → 以退出码 0 结束
+- 用户点击 “Login required” → 以专门的 login-required 失败结果结束，方便把流程升级给账号持有者
 - 用户点击 “Cannot solve” → 以退出码 1 结束
 - 超时 → HCL 用相同配置立即启动一个新的会话
 
@@ -192,7 +194,7 @@ Options:
   --timeout <seconds>  Auto-stop after N seconds (default: 600)
   --public             Also create a public tunnel URL for remote helpers
   --password <string>  Protect the help URL with a password
-  --mask <regions>     Mask screen regions: "x,y,w,h;x,y,w,h"
+  --mask <regions>     Render black helper-side mask regions and block pointer input: "x,y,w,h;x,y,w,h"
 ```
 
 ```bash
@@ -205,7 +207,7 @@ hcl start [参数]
   --timeout <seconds>  自动停止时间，单位秒（默认：600）
   --public             为远程协助者生成公共访问地址
   --password <string>  为帮助 URL 添加访问密码
-  --mask <regions>     遮罩区域："x,y,w,h;x,y,w,h"
+  --mask <regions>     渲染黑色协助者侧遮罩并阻止指针输入："x,y,w,h;x,y,w,h"
 ```
 
 ## Modes / 模式
@@ -240,6 +242,6 @@ The help page automatically expires when:
 
 ## Privacy / 隐私说明
 
-Password protection is available now. For password-protected sessions, remote helpers must authenticate before HCL exposes live session metadata or event updates. The `--mask` flag exists in the CLI surface, but masking is not enforced yet in the current MVP, so do not rely on it as a privacy control.
+Password protection is available now. For password-protected sessions, remote helpers must authenticate before HCL exposes live session metadata or event updates. The `--mask` flag now renders black helper-side mask regions and blocks helper pointer input inside them, but it does not sanitize the underlying CDP/VNC transport stream itself.
 
-当前已经支持密码保护。对于带密码的会话，远程协助者必须先通过认证，HCL 才会暴露实时会话元数据或事件更新。CLI 中虽然有 `--mask` 参数，但当前 MVP 还没有真正强制执行遮罩，所以不要把它当成可靠的隐私保护手段。
+当前已经支持密码保护。对于带密码的会话，远程协助者必须先通过认证，HCL 才会暴露实时会话元数据或事件更新。`--mask` 现在会在协助者界面中渲染黑色遮罩，并阻止协助者在这些区域内进行指针操作，但它不会改写底层 CDP/VNC 传输流本身。
