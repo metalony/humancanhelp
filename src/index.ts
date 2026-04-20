@@ -79,7 +79,7 @@ Options:
   --port <number>      HTTP server port (default: 6080)
   --cdp <host:port>    Use CDP mode (Chrome DevTools Protocol), e.g. --cdp localhost:9222
   --vnc <host:port>    VNC server address (default: localhost:5900)
-  --timeout <seconds>  Auto-stop after this many seconds (default: 600)
+  --timeout <seconds>  Session expiry in seconds; HCL immediately starts a fresh session after timeout (default: 600)
   --public             Create a public tunnel URL (for remote helpers)
   --password <string>  Optional password to protect the help URL
   --mask <regions>     Optional helper-side black mask regions that also block pointer input: "x,y,w,h;x,y,w,h"
@@ -88,7 +88,7 @@ Options:
   --port <number>      帮助页 HTTP 端口（默认：6080）
   --cdp <host:port>    使用 CDP 模式（Chrome DevTools Protocol），例如 --cdp localhost:9222
   --vnc <host:port>    VNC 服务地址（默认：localhost:5900）
-  --timeout <seconds>  自动停止时间，单位秒（默认：600）
+  --timeout <seconds>  会话过期时间，单位秒；超时后 HCL 会立即启动一个新会话（默认：600）
   --public             为远程协助者创建公共访问地址
   --password <string>  为帮助地址添加访问密码
   --mask <regions>     可选协助者侧黑色遮罩，并阻止指针输入："x,y,w,h;x,y,w,h"
