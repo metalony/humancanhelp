@@ -8,11 +8,11 @@
 
 HumanCanHelp is a local human-in-the-loop handoff tool for visual or interactive tasks that AI cannot finish alone.
 
-HumanCanHelp 是一个本地 human-in-the-loop 人工接手工具，适用于 AI 无法独自完成的视觉或交互式任务。
+HumanCanHelp 是一个本地运行的人机接手工具，适用于 AI 无法单独完成的视觉类或交互类任务。
 
 It starts a short-lived help session, gives you a URL, and lets a human open that page to see and interact with either:
 
-它会启动一个短时帮助会话，生成一个 URL，并让真人打开该页面来查看并操作以下任一内容：
+它会启动一个短时协助会话，生成一个 URL，让真人打开页面后查看并操作以下任一内容：
 
 - a live browser tab through Chrome DevTools Protocol (CDP), or
 - a full desktop session through VNC.
@@ -22,11 +22,11 @@ It starts a short-lived help session, gives you a URL, and lets a human open tha
 
 Challenge or verification steps are only one example. HCL is for any moment where an agent needs a real person to briefly look at a screen, click something, type something, or complete a blocked step.
 
-验证或挑战步骤只是其中一个例子。HCL 适用于任何需要真人临时查看屏幕、点击、输入，或完成受阻步骤的场景。
+验证或挑战步骤只是其中一种用法。只要 AI 需要真人临时看一眼屏幕、点一下、输一点内容，或帮忙把卡住的步骤走完，HCL 都能派上用场。
 
 No accounts, no cloud dashboard, no API keys. It runs on your machine.
 
-不需要账号，不需要云端控制台，也不需要 API Key。它运行在你的本地机器上。
+不需要账号，不需要云端控制台，也不需要 API Key。它直接运行在你的本地机器上。
 
 ## What HCL is for
 
@@ -34,7 +34,7 @@ No accounts, no cloud dashboard, no API keys. It runs on your machine.
 
 HCL is useful when an automated workflow reaches a human-only step such as:
 
-当自动化流程遇到必须由真人处理的步骤时，HCL 会很有用，例如：
+当自动化流程走到必须由真人接手的一步时，HCL 会很有用，例如：
 
 - slider, click, or visual confirmation flows
 - browser steps that require a human eye or judgment
@@ -44,6 +44,7 @@ HCL is useful when an automated workflow reaches a human-only step such as:
 
 - 滑块、点击或视觉确认类流程
 - 需要人工判断的浏览器步骤
+- 普通登录页、登录表单，或其他可以由远程协助者代为完成的登录相关步骤
 - “请看一下这个页面并帮我完成这一步” 的接手场景
 - Playwright 或 Puppeteer 会话中的远程人工协助
 - 浏览器标签页共享不够时的桌面级交互
@@ -60,8 +61,8 @@ The core model is simple:
 6. Your CLI exits with success or failure.
 
 1. 在本地启动 HCL。
-2. HCL 打印一个本地 URL，并且可选打印一个公共 URL。
-3. 真人打开页面后看到共享的浏览器标签页或桌面。
+2. HCL 打印一个本地 URL，必要时也可以打印一个公共 URL。
+3. 真人打开页面后，就能看到共享的浏览器标签页或桌面。
 4. 真人直接进行操作。
 5. 真人点击 **Done**、**Owner action required** 或 **Cannot solve**。
 6. CLI 以成功或失败状态退出。
@@ -72,7 +73,7 @@ The core model is simple:
 
 This project currently runs from a local checkout.
 
-这个项目当前建议以本地仓库方式运行。
+目前更推荐直接以本地仓库方式运行这个项目。
 
 ```bash
 npm install
@@ -82,7 +83,7 @@ node dist/index.js start
 
 The package metadata and CLI names are already in place, but this README should treat the local checkout flow as the real installation path for now.
 
-虽然 package metadata 和 CLI 名称已经准备好了，但目前 README 仍然应把“本地仓库运行”视为主要安装路径。
+虽然 package metadata 和 CLI 名称都已经就位，但当前 README 仍然把“本地仓库运行”作为主要安装方式。
 
 ## How it works
 
@@ -110,6 +111,7 @@ This is the recommended mode for:
 
 - 浏览器自动化恢复
 - 网页内部需要人工观察或操作的受阻步骤
+- 普通登录流程里需要人工代点、代填的页面步骤
 - Playwright 或 Puppeteer 执行过程中的短时人工介入
 
 In CDP mode, the helper can:
@@ -166,7 +168,7 @@ If you do not pass `--cdp` or `--vnc`, HCL will:
 
 HCL starts its own helper HTTP server automatically. You do **not** need to install a separate HTTP service first.
 
-HCL 会自动启动自己的 helper HTTP 服务。你**不需要**先安装单独的 HTTP 服务。
+HCL 会自动启动自己的 helper HTTP 服务。你**不需要**额外再装一个 HTTP 服务。
 
 What you do need is at least one usable local session source:
 
@@ -180,7 +182,7 @@ What you do need is at least one usable local session source:
 
 If neither is available, HCL now fails early with setup guidance instead of starting a session that cannot connect.
 
-如果两者都不可用，HCL 现在会提前失败并给出设置提示，而不是启动一个实际上无法连接的会话。
+如果两者都不可用，HCL 现在会直接提前失败，并给出设置提示，而不是先启动一个实际上根本连不上的会话。
 
 ```bash
 node dist/index.js start
@@ -250,7 +252,7 @@ Timeout: 600s
 
 If the helper is not on the same network, you can ask HCL to create a public tunnel URL.
 
-如果协助者不在同一个网络内，你可以让 HCL 创建一个公共隧道 URL。
+如果协助者不在同一个网络里，你可以让 HCL 创建一个公共隧道 URL。
 
 Install the optional tunnel dependency first:
 
@@ -266,11 +268,11 @@ node dist/index.js start --public --password "use-a-long-random-password"
 
 Only use `--public` when you intentionally want to expose the live help session outside your local network.
 
-只有在你明确希望把实时帮助会话暴露到本地网络之外时，才应使用 `--public`。
+只有在你明确要把这次实时协助会话暴露到本地网络之外时，才建议使用 `--public`。
 
 That public URL can expose a live browser tab or desktop session to anyone who can reach it, so always set a strong, unique password and share it through a trusted channel.
 
-这个公共 URL 可能会把实时浏览器标签页或桌面会话暴露给任何能够访问它的人，因此务必设置一个强且唯一的密码，并通过可信渠道单独发送。
+这个公共 URL 可能会把实时浏览器标签页或桌面会话暴露给任何能访问它的人，因此务必设置一个强且唯一的密码，并通过可信渠道单独发送。
 
 Example output:
 
@@ -290,7 +292,7 @@ Password: yes
 
 When a helper opens the page, HCL serves a live interaction UI.
 
-当协助者打开页面后，HCL 会提供一个实时交互界面。
+协助者打开页面后，HCL 会提供一个可实时交互的界面。
 
 The helper can:
 
@@ -304,7 +306,7 @@ The helper can:
 
 - 与共享的屏幕或标签页交互
 - 在任务完成后点击 **Done**
-- 如果远程协助者可以通过 CDP/VNC 合理完成普通登录页面或登录步骤，就继续协助处理
+- 如果远程协助者可以通过 CDP/VNC 合理完成普通登录页面、登录表单或其他常规登录步骤，就继续协助处理
 - 只有当必须由真实账号持有者本人继续时，例如 owner 绑定的 MFA、SSO 批准或其他仅限账号主人完成的登录动作，才点击 **Owner action required**
 - 如果无法完成则点击 **Cannot solve**
 
@@ -320,7 +322,7 @@ Session behavior:
 - **Done** → CLI 成功退出
 - **Owner action required** → CLI 以专门的 login-required 失败状态退出，方便调用方把当前会话升级给真正的账号持有者处理
 - **Cannot solve** → CLI 失败退出
-- **Timeout** → 会话过期，页面显示过期状态，HCL 使用相同配置重新开启一个新会话
+- **Timeout** → 当前会话过期，旧页面会显示过期状态并失效，同时 HCL 会用相同配置立即重新开启一个新会话
 
 ## CLI reference
 
@@ -341,7 +343,7 @@ node dist/index.js status
 | `--port` | `6080` | HTTP port for the helper page |
 | `--cdp` | auto | CDP endpoint, for example `localhost:9222` |
 | `--vnc` | auto | VNC endpoint, for example `localhost:5900` |
-| `--timeout` | `600` | Auto-stop / session-expiry time in seconds |
+| `--timeout` | `600` | Session expiry time in seconds; when it expires, HCL immediately starts a fresh session with the same config |
 | `--public` | off | Create a public tunnel URL for remote helpers |
 | `--password` | none | Require a password before the helper can access the session |
 | `--mask` | none | Apply helper-side black mask regions like `x,y,w,h;x,y,w,h` and block pointer input inside them |
@@ -352,7 +354,7 @@ node dist/index.js status
 
 `status` reports whether a server is running, which mode it is in, and whether a public URL exists.
 
-`status` 会报告当前是否有服务在运行、运行模式是什么，以及是否存在公共 URL。
+`status` 会报告当前是否有服务在运行、正在使用哪种模式，以及是否存在公共 URL。
 
 ### Stop
 
@@ -360,7 +362,7 @@ node dist/index.js status
 
 `stop` shuts down the running local HCL server on the selected port.
 
-`stop` 会关闭指定端口上正在运行的本地 HCL 服务。
+`stop` 会关闭指定端口上当前正在运行的本地 HCL 服务。
 
 ## Privacy and security notes
 
@@ -374,9 +376,9 @@ What exists today:
 - optional password protection
 - optional public tunnel only when explicitly requested and the optional `localtunnel` package is installed
 
-- 本地优先工作流
+- 本地优先的工作方式
 - 可选密码保护
-- 只有在显式请求并安装了可选 `localtunnel` 依赖后，才会启用公共隧道
+- 只有在显式请求并安装可选 `localtunnel` 依赖后，才会启用公共隧道
 
 Important limitation:
 
@@ -396,8 +398,8 @@ So the honest current privacy story is:
 - helper-side masking is available for visual redaction and click blocking, but transport-level sanitization is still out of scope for the current architecture
 
 - 密码保护是有效的
-- 共享是显式选择开启的
-- 公共隧道支持是可选功能，并且依赖单独安装的隧道包
+- 共享必须由你显式开启
+- 公共隧道支持是可选能力，并且依赖单独安装的隧道包
 - 当前已提供协助者界面的可视遮罩与点击阻止能力，但底层传输级脱敏仍超出当前架构范围
 
 ## VNC setup
